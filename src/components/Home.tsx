@@ -9,6 +9,41 @@ interface PremiumImage {
   url: string;
 }
 
+// Razorpay type definitions
+interface RazorpayResponse {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+}
+
+interface RazorpayOptions {
+  key: string | undefined;
+  amount: number;
+  currency: string;
+  name: string;
+  description: string;
+  order_id: string;
+  handler: (response: RazorpayResponse) => void;
+  prefill: {
+    name: string;
+    email: string;
+    contact: string;
+  };
+  theme: {
+    color: string;
+  };
+}
+
+interface RazorpayInstance {
+  open(): void;
+}
+
+declare global {
+  interface Window {
+    Razorpay: new (options: RazorpayOptions) => RazorpayInstance;
+  }
+}
+
 // Skeleton Component
 const ImageSkeleton = () => (
   <div className="border border-gray-200 p-4 rounded-lg shadow-sm animate-pulse">
@@ -97,7 +132,7 @@ export default function Home() {
         name: "Premium Gallery",
         description: "Access to Premium Images",
         order_id: orderData.id,
-        handler: async function (response: any) {
+        handler: async function (response: RazorpayResponse) {
           try {
             // Record the successful payment
             const purchaseRes = await fetch("/api/purchase", {
@@ -139,7 +174,7 @@ export default function Home() {
       console.log("Razorpay prefill data:", options.prefill);
 
 
-      const rzp = new (window as any).Razorpay(options);
+      const rzp = new window.Razorpay(options);
       rzp.open();
     } catch (error) {
       console.error("Payment error:", error);

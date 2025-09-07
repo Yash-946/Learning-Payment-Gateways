@@ -24,8 +24,13 @@ export async function POST() {
       message: "Images seeded successfully",
       count: inserted.length,
     });
-  } catch (error: any) {
-    console.error("Error inserting images:", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error("Error inserting images:", error.message);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    } else {
+      console.error("Unknown error occurred:", error);
+      return NextResponse.json({ error: "An unknown error occurred" }, { status: 500 });
+    }
   }
 }
