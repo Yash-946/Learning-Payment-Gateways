@@ -59,53 +59,50 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [checkingPurchase, setCheckingPurchase] = useState(true);
 
-  // Check if user has purchased access from backend API
-  useEffect(() => {
-    const checkPurchaseStatus = async () => {
-      try {
-        setCheckingPurchase(true);
-        const response = await fetch("/api/purchase/check");
-        const data = await response.json();
+  // Function to check purchase status and fetch images if purchased
+  const checkPurchaseStatusAndFetchImages = async () => {
+    try {
+      setCheckingPurchase(true);
 
-        if (response.ok) {
-          setIsPurchased(data.hasPurchased);
-        } else {
-          console.error("Error checking purchase status:", data.error);
+      const response = await fetch("/api/purchase/check");
+      const data = await response.json();
+
+      if (response.ok) {
+        setIsPurchased(data.hasPurchased);
+
+        // If user has purchased access, fetch images
+        if (data.hasPurchased) {
+          try {
+            setIsLoading(true);
+            const res = await fetch("/api/images");
+            const imageData = await res.json();
+            setImages(imageData);
+          } catch (error) {
+            console.error("Error fetching images:", error);
+          } finally {
+            setIsLoading(false);
+          }
         }
-      } catch (error) {
-        console.error("Error checking purchase status:", error);
-      } finally {
-        setCheckingPurchase(false);
+      } else {
+        console.error("Error checking purchase status:", data.error);
       }
-    };
-
-    checkPurchaseStatus();
-  }, []);
-
-  // Fetch images only if user has purchased access
-  useEffect(() => {
-    if (isPurchased) {
-      const fetchImages = async () => {
-        try {
-          setIsLoading(true);
-          const res = await fetch("/api/images");
-          const data = await res.json();
-          setImages(data);
-        } catch (error) {
-          console.error("Error fetching images:", error);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      fetchImages();
+    } catch (error) {
+      console.error("Error checking purchase status:", error);
+    } finally {
+      setCheckingPurchase(false);
     }
-  }, [isPurchased]);
+  };
+
+  // Check purchase status on component mount
+  useEffect(() => {
+    checkPurchaseStatusAndFetchImages();
+  }, []);
 
   // Handle Razorpay payment
   const handlePurchase = async () => {
     try {
       setIsLoading(true);
-      
+
       const userEmail = user?.primaryEmailAddress?.emailAddress || "";
       const userName = user?.fullName || "User";
 
@@ -148,7 +145,8 @@ export default function Home() {
             });
 
             if (purchaseRes.ok) {
-              setIsPurchased(true);
+              // After successful payment, check purchase status and fetch images
+              await checkPurchaseStatusAndFetchImages();
               // alert(
               //   "Payment successful! You now have access to premium images."
               // );
@@ -172,7 +170,6 @@ export default function Home() {
         },
       };
       console.log("Razorpay prefill data:", options.prefill);
-
 
       const rzp = new window.Razorpay(options);
       rzp.open();
