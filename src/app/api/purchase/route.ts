@@ -16,7 +16,7 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const { razorpayOrderId, razorpayPaymentId, razorpaySignature } = body;
-    console.log("Received purchase data:", body);
+    // console.log("Received purchase data:", body);
 
     if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
       return NextResponse.json(
@@ -34,6 +34,8 @@ export async function POST(request: Request) {
     if (generatedSignature !== razorpaySignature) {
       return NextResponse.json({ error: "Payment verification failed" }, { status: 400 });
     }
+
+    // console.log("Payment signature verified successfully");
 
     // 2. Verify payment details directly with Razorpay API
     const razorpayResponse = await fetch(
@@ -59,8 +61,10 @@ export async function POST(request: Request) {
       );
     }
 
+    // console.log("Fetched payment data from Razorpay:", paymentData);
+
     // 3. Ensure payment is completed and amount is correct
-    const expectedAmount = 500; // ₹5 in paise
+    const expectedAmount = 1000; // ₹10 in paise
     if (
       paymentData.status !== "captured" ||
       paymentData.amount !== expectedAmount ||
@@ -71,6 +75,8 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+
+    // console.log("Payment data validated successfully");
 
     // 4. Connect to DB and save purchase
     await connectDB();
@@ -97,6 +103,8 @@ export async function POST(request: Request) {
         new: true,
       }
     );
+
+    // console.log("Purchase recorded successfully:", purchase);
 
     return NextResponse.json({
       success: true,

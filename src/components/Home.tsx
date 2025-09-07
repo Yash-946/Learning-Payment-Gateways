@@ -149,9 +149,9 @@ export default function Home() {
 
             if (purchaseRes.ok) {
               setIsPurchased(true);
-              alert(
-                "Payment successful! You now have access to premium images."
-              );
+              // alert(
+              //   "Payment successful! You now have access to premium images."
+              // );
             } else {
               throw new Error("Failed to record purchase");
             }
