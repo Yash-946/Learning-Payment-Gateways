@@ -11,7 +11,7 @@ export async function POST() {
 
     // Define the order details
     const options = {
-      amount: 1000, // amount in paise -> ₹50
+      amount: 10000, // amount in paise -> ₹100
       currency: "INR",
       receipt: `receipt_${Date.now()}`,
       payment_capture: 1, // auto capture payment

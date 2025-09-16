@@ -23,9 +23,10 @@ const purchaseSchema = new mongoose.Schema({
     required: true,
     default: 'INR'
   },
+  // Razorpay fields
   razorpayOrderId: {
     type: String,
-    required: true
+    default: null
   },
   razorpayPaymentId: {
     type: String,
@@ -34,6 +35,21 @@ const purchaseSchema = new mongoose.Schema({
   razorpaySignature: {
     type: String,
     default: null
+  },
+  // Stripe fields
+  stripePaymentIntentId: {
+    type: String,
+    default: null
+  },
+  stripeSessionId: {
+    type: String,
+    default: null
+  },
+  // Payment method identifier
+  paymentMethod: {
+    type: String,
+    enum: ['razorpay', 'stripe'],
+    required: true
   },
   status: {
     type: String,

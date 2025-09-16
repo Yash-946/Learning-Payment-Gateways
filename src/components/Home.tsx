@@ -44,6 +44,7 @@ declare global {
   }
 }
 
+
 // Skeleton Component
 const ImageSkeleton = () => (
   <div className="border border-gray-200 p-4 rounded-lg shadow-sm animate-pulse">
@@ -98,6 +99,34 @@ export default function Home() {
     checkPurchaseStatusAndFetchImages();
   }, []);
 
+  // Handle Stripe payment
+  const handleStripePayment = async () => {
+    try {
+      setIsLoading(true);
+
+      // Create checkout session
+      const response = await fetch("/api/payment/stripe/create-intent", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create checkout session");
+      }
+
+      const { url } = await response.json();
+      
+      // Redirect to Stripe Checkout
+      window.location.href = url;
+    } catch (error) {
+      console.error("Stripe payment error:", error);
+      alert(`Payment failed: ${error instanceof Error ? error.message : "Please try again."}`);
+      setIsLoading(false);
+    }
+  };
+
   // Handle Razorpay payment
   const handlePurchase = async () => {
     try {
@@ -107,7 +136,7 @@ export default function Home() {
       const userName = user?.fullName || "User";
 
       // Create order (amount is now determined by backend)
-      const orderRes = await fetch("/api/payment/order", {
+      const orderRes = await fetch("/api/payment/razorpay/create-order", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -132,7 +161,7 @@ export default function Home() {
         handler: async function (response: RazorpayResponse) {
           try {
             // Record the successful payment
-            const purchaseRes = await fetch("/api/purchase", {
+            const purchaseRes = await fetch("/api/payment/razorpay/confirm", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -262,7 +291,7 @@ export default function Home() {
                       d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m6-5v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01"
                     />
                   </svg>
-                  <span>Purchase Access - ₹10</span>
+                  <span>Purchase Access - ₹100</span>
                 </>
               )}
             </button>
@@ -386,53 +415,102 @@ export default function Home() {
                 Get instant access to our exclusive collection of high-quality
                 premium images. Perfect for your projects and creative needs.
               </p>
-              <button
-                onClick={handlePurchase}
-                disabled={isLoading}
-                className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-8 py-3 rounded-lg font-medium text-lg transition-colors inline-flex items-center space-x-2"
-              >
-                {isLoading ? (
-                  <>
-                    <svg
-                      className="animate-spin h-5 w-5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
+              <div className="flex space-x-4 justify-center">
+                <button
+                  onClick={handlePurchase}
+                  disabled={isLoading}
+                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-6 py-3 rounded-lg font-medium text-lg transition-colors inline-flex items-center space-x-2"
+                >
+                  {isLoading ? (
+                    <>
+                      <svg
+                        className="animate-spin h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      <span>Processing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg
+                        className="h-5 w-5"
+                        fill="none"
                         stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    <span>Processing Payment...</span>
-                  </>
-                ) : (
-                  <>
-                    <svg
-                      className="h-5 w-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13 10V3L4 14h7v7l9-11h-7z"
-                      />
-                    </svg>
-                    <span>Purchase Now - ₹10</span>
-                  </>
-                )}
-              </button>
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13 10V3L4 14h7v7l9-11h-7z"
+                        />
+                      </svg>
+                      <span>Razorpay ₹100</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={handleStripePayment}
+                  disabled={isLoading}
+                  className="bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white px-6 py-3 rounded-lg font-medium text-lg transition-colors inline-flex items-center space-x-2"
+                >
+                  {isLoading ? (
+                    <>
+                      <svg
+                        className="animate-spin h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      <span>Processing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg
+                        className="h-5 w-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                        />
+                      </svg>
+                      <span>Stripe ₹100</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           )}
         </SignedIn>

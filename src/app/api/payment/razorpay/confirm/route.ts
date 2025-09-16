@@ -10,6 +10,8 @@ export async function POST(request: Request) {
     const { userId } = await auth();
     const user = await currentUser();
 
+    console.log("User:", user, "UserId:", userId);
+
     if (!userId || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -64,11 +66,11 @@ export async function POST(request: Request) {
     // console.log("Fetched payment data from Razorpay:", paymentData);
 
     // 3. Ensure payment is completed and amount is correct
-    const expectedAmount = 1000; // ₹10 in paise
+    const expectedAmount = 10000; // ₹100 in paise
     if (
       paymentData.status !== "captured" ||
       paymentData.amount !== expectedAmount ||
-      paymentData.currency !== "INR"
+      paymentData.currency !== "INR" || paymentData.email !== user.primaryEmailAddress?.emailAddress
     ) {
       return NextResponse.json(
         { error: "Invalid payment data or amount mismatch" },
@@ -78,13 +80,27 @@ export async function POST(request: Request) {
 
     // console.log("Payment data validated successfully");
 
-    // 4. Connect to DB and save purchase
+    // 4. Connect to DB and verify user + save purchase
     await connectDB();
+
+    // First check if there's an existing purchase with this userId
+    const existingPurchase = await Purchase.findOne({
+      userId: userId,
+      status: "completed"
+    });
+
+    // If there's an existing purchase, verify the email matches
+    if (existingPurchase && existingPurchase.userEmail !== user.primaryEmailAddress?.emailAddress) {
+      return NextResponse.json(
+        { error: "Email verification failed - user mismatch" },
+        { status: 403 }
+      );
+    }
 
     const purchase = await Purchase.findOneAndUpdate(
       {
-        userId: userId,
-        razorpayOrderId: razorpayOrderId,
+        userId: userId
+        // razorpayOrderId: razorpayOrderId,
       },
       {
         userId: userId,
@@ -95,6 +111,7 @@ export async function POST(request: Request) {
         razorpaySignature: razorpaySignature,
         amount: paymentData.amount,
         currency: paymentData.currency,
+        paymentMethod: "razorpay",
         status: "completed",
         updatedAt: new Date(),
       },
@@ -108,9 +125,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      purchaseId: purchase._id,
+      purchaseId: purchase?._id,
       message: "Purchase verified and recorded successfully",
     });
+
   } catch (error) {
     console.error("Error recording purchase:", error);
     return NextResponse.json(
